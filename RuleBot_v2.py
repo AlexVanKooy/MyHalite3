@@ -14,7 +14,7 @@ game = hlt.Game()
 # At this point "game" variable is populated with initial map data.
 # This is a good place to do computationally expensive start-up pre-processing.
 # As soon as you call "ready" function below, the 2 second per turn timer will start.
-game.ready("MymodifiedBot")
+game.ready("RuleBot_v2")
 
 # Now that your bot is initialized, save a message to yourself in the log file with some important information.
 #   Here, you log here your id, which you can always fetch from the game object by using my_id.
@@ -37,13 +37,13 @@ while True:
     position_choices = [] #Physical coordinate on the map that a bot is planning to go to
     
     for ship in me.get_ships():
+        
         if ship.id not in ship_states:
             ship_states[ship.id] = "collecting"
             logging.info(" adding ship id # {} to ship states \n".format(ship.id))
-
+        logging.info(" ship id {} state = {}".format(ship.id, ship_states[ship.id]))
         #Examine surrounding area
         position_options = ship.position.get_surrounding_cardinals() + [ship.position]
-        logging.info("position options are {} \n".format(position_options))
        
         #{(0,1): (19,38)}
         position_dict = {} #maps a relative direction to the global position
@@ -63,19 +63,20 @@ while True:
 
             if (position_dict[direction] not in position_choices):# and (game_map[position].is_occupied == False):
                 halite_dict[direction] = halite_amount
-                logging.info(" moving ship id {} to location {} \n".format(ship.id, position_dict[direction] ))
+                # logging.info(" moving ship id {} to location {} \n".format(ship.id, position_dict[direction] ))
             else:
                 logging.info("attempting to move to same spot \n")
-        if (ship_states[ship.id] == "depositing" and ship.halite_amount < constants.MAX_HALITE / 5):
-            ship_states[ship.id] = "collecting"
+        # if (ship_states[ship.id] == "depositing" and ship.halite_amount < constants.MAX_HALITE / 5):
+        #     ship_states[ship.id] = "collecting"
         
-        if ((ship_states[ship.id] == "depositing") and not (ship.halite_amount < constants.MAX_HALITE / 5)):
+        if (ship_states[ship.id] == "depositing") :
+            # and not (ship.halite_amount < constants.MAX_HALITE / 5)):
             move = game_map.naive_navigate(ship, me.shipyard.position)
             position_choices.append(position_dict[move])
             command_queue.append(ship.move(move))
 
 
-        elif (ship_states[ship.id] == "collecting") and ( game_map[ship.position].halite_amount < constants.MAX_HALITE / 10) :
+        elif (ship_states[ship.id] == "collecting" and ( game_map[ship.position].halite_amount < constants.MAX_HALITE / 10)) :
             localMaxHal_location = max(halite_dict, key=halite_dict.get)
             localMaxHal_value = game_map[position_dict[localMaxHal_location]].halite_amount
             logging.info(
@@ -83,18 +84,16 @@ while True:
                                                                                              localMaxHal_location,
                                                                                              localMaxHal_value,
                                                                                              game_map[position_dict[Direction.Still]].halite_amount)) 
-            if localMaxHal_value > (game_map[position_dict[Direction.Still]].halite_amount * 1.5 ):
-                directional_choice = localMaxHal_location
+            # if localMaxHal_value > (game_map[position_dict[Direction.Still]].halite_amount * 1.5 ):
+            directional_choice = localMaxHal_location
                
-                position_choices.append(position_dict[directional_choice])
-                command_queue.append(ship.move(game_map.naive_navigate(ship, position_dict[directional_choice]))) #move to location with the most halite
+            position_choices.append(position_dict[directional_choice])
+            command_queue.append(ship.move(game_map.naive_navigate(ship, position_dict[directional_choice]))) #move to location with the most halite
                 
-            if ship.halite_amount > constants.MAX_HALITE / 3:
-                ship_states[ship.id] == "depositing"
-
-        else:
-            position_choices.append(position_dict[Direction.Still])
-            command_queue.append(ship.stay_still())
+        if ship.halite_amount > constants.MAX_HALITE / 3:
+            ship_states[ship.id] = "depositing"
+        elif ship.halite_amount == 0:
+            ship_states[ship.id] = "collecting"
 
 
     # If the game is in the first 200 turns and you have enough halite, spawn a ship.
