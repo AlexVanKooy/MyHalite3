@@ -1,4 +1,7 @@
-# Starter Kit
+#This is the readme from halite's website, I will create my own if and when I share this
+
+
+## Starter Kit
 
 ## Halite III starter kit components
 * MyBot.{extension}, a starter bot outline
