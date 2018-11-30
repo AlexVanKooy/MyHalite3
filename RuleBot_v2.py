@@ -60,45 +60,52 @@ while True:
         for direction in position_dict:
             position = position_dict[direction]
             halite_amount = game_map[position].halite_amount
-
             if (position_dict[direction] not in position_choices):# and (game_map[position].is_occupied == False):
-                halite_dict[direction] = halite_amount
+                if(direction == Direction.Still):
+                    halite_dict[direction] = halite_amount * 2
+                else:
+                    halite_dict[direction] = halite_amount
                 # logging.info(" moving ship id {} to location {} \n".format(ship.id, position_dict[direction] ))
             else:
-                logging.info("attempting to move to same spot \n")
-        # if (ship_states[ship.id] == "depositing" and ship.halite_amount < constants.MAX_HALITE / 5):
-        #     ship_states[ship.id] = "collecting"
+                logging.info("ship already located at {} \n".format(position_dict[direction]))
+
         
         if (ship_states[ship.id] == "depositing") :
-            # and not (ship.halite_amount < constants.MAX_HALITE / 5)):
-            move = game_map.naive_navigate(ship, me.shipyard.position)
-            position_choices.append(position_dict[move])
-            command_queue.append(ship.move(move))
+            if(ship.halite_amount == 0 ):
+                #leave the shipyard to the East and become a collector again
+                move = game_map.naive_navigate(ship, position_dict[Direction.East])
+                position_choices.append(position_dict[Direction.East])
+                ship_states[ship.id] = "collecting"
+                command_queue.append(ship.move(move))
+
+            else:
+                move = game_map.naive_navigate(ship, me.shipyard.position)
+                position_choices.append(position_dict[move])
+                command_queue.append(ship.move(move))
 
 
         elif (ship_states[ship.id] == "collecting" and ( game_map[ship.position].halite_amount < constants.MAX_HALITE / 10)) :
             localMaxHal_location = max(halite_dict, key=halite_dict.get)
             localMaxHal_value = game_map[position_dict[localMaxHal_location]].halite_amount
             logging.info(
-                "ship id {} - local max halite @ = {} containing {} halite, current position halite = {} \n".format(ship.id,
-                                                                                             localMaxHal_location,
-                                                                                             localMaxHal_value,
-                                                                                             game_map[position_dict[Direction.Still]].halite_amount)) 
+                "ship id {} - currently carrying {} halite \n".format(ship.id,
+                                                                    ship.halite_amount)) 
             # if localMaxHal_value > (game_map[position_dict[Direction.Still]].halite_amount * 1.5 ):
             directional_choice = localMaxHal_location
                
             position_choices.append(position_dict[directional_choice])
             command_queue.append(ship.move(game_map.naive_navigate(ship, position_dict[directional_choice]))) #move to location with the most halite
                 
-        if ship.halite_amount > constants.MAX_HALITE / 3:
+        if ship.halite_amount >= constants.MAX_HALITE * 0.8:
             ship_states[ship.id] = "depositing"
         elif ship.halite_amount == 0:
             ship_states[ship.id] = "collecting"
 
 
-    # If the game is in the first 200 turns and you have enough halite, spawn a ship.
+    # If the game is in the first 50 turns and you have enough halite, spawn a ship.
     # Don't spawn a ship if you currently have a ship at port, though - the ships will collide.
-    if game.turn_number <= 200 and me.halite_amount >= constants.SHIP_COST and not game_map[me.shipyard].is_occupied:
+    #TODO: check if several ships are about to unload, don't want to clog the drop off
+    if game.turn_number <= 200 and me.halite_amount >= (constants.SHIP_COST * 1.5) and not game_map[me.shipyard].is_occupied:
         command_queue.append(me.shipyard.spawn())
 
     # Send your moves back to the game environment, ending this turn.
