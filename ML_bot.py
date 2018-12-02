@@ -30,6 +30,11 @@ map_setting = {32: 400,
 TOTAL_TURNS = 50 # limit the number actions taken by the random bot. This allows the 'signal' of good choices to come out of the noise
 SAVE_THRESHOLD = 4100 # threshold of halite to save game
 MAX_SHIPS = 1
+SIGHT_DISTANCE = 16
+
+direction_order = [Direction.North, Direction.South, Direction.East, Direction.West, Direction.Still]
+
+training_data = []# will hold all the game data, every move of every frame
 
 while True:
     # This loop handles each turn of the game. The game object changes every turn, and you refresh that state by
@@ -39,7 +44,7 @@ while True:
     game_map = game.game_map
     command_queue = []
 
-    direction_order = [Direction.North, Direction.South, Direction.East, Direction.West, Direction.Still]
+    
     dropoff_positions = [d.position for d in list(me.get_dropoffs()) + [me.shipyard]] 
 
     #if a position on the game map has a ship and it does NOT appear here, it is an enemy ship
@@ -49,7 +54,7 @@ while True:
         logging.info(f"{ship.position},{ship.position + Position(-3,3)}")
         logging.info(f"{game_map[ship.position +Position(-3,3)]}") 
 
-        size = 16 #chosen based on the need of several potentially useful toolkits data size reqs
+        size = SIGHT_DISTANCE #chosen based on the need of several potentially useful toolkits data size reqs
         surroundings = []
         # surroundings = [[HALITE_AMOUNT, SHIP, DROPOFF]] 
 
@@ -90,8 +95,10 @@ while True:
             surroundings.append(row)
     
         # np.save(f"game_play/{game.turn_number}.npy",surroundings)
+        choice = secrets.choice(range(len(direction_order)))
+        training_data.append([surroundings, choice])
 
-        command_queue.append(ship.move(secrets.choice(direction_order)))
+        command_queue.append(ship.move(direction_order[choice]))
 
 
 
@@ -104,7 +111,7 @@ while True:
 
     if game.turn_number == TOTAL_TURNS:
         if me.halite_amount >= SAVE_THRESHOLD:
-            np.save(f"training_data/{me.halite_amount}-{int(time.time())}.npy", surroundings)
+            np.save(f"training_data/{me.halite_amount}-{int(time.time())}.npy", training_data)
 
     # Send your moves back to the game environment, ending this turn.
     game.end_turn(command_queue)
