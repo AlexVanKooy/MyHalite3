@@ -13,3 +13,9 @@ __pycache__/
 *.code-workspace
 *.vscode
 training_data/
+py36venv/
+*.npy
+*logs
+*.7z
+
+
